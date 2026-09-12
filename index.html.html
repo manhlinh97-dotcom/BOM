@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Cấu Trúc BOM & Phiên Bản Linh Kiện V3</title>
+    <!-- Tailwind CSS, FontAwesome & SheetJS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .level-0 { background-color: #f1f5f9; font-weight: 700; border-left: 4px solid #0f172a; }
+        .level-1 { background-color: #f8fafc; font-weight: 600; border-left: 4px solid #2563eb; }
+        .indent-1 { padding-left: 1.5rem !important; }
+        .indent-2 { padding-left: 3.0rem !important; }
+        .indent-3 { padding-left: 4.5rem !important; }
+        .indent-4 { padding-left: 6.0rem !important; }
+        .indent-5 { padding-left: 7.5rem !important; }
+        .modified-highlight { background-color: #fef08a !important; border-left: 4px solid #eab308 !important; }
+        .modified-highlight:hover { background-color: #fde047 !important; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800 flex flex-col font-sans">
+
+<!-- HEADER CHÍNH -->
+<header class="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-md">
+    <div class="flex items-center gap-3">
+        <i class="fa-solid fa-sitemap text-blue-400 text-2xl"></i>
+        <div>
+            <h1 class="text-base font-bold tracking-wide flex items-center gap-2">
+                HỆ THỐNG QUẢN TRỊ BOM & PHIÊN BẢN LINH KIỆN
+                <span class="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-normal">v3.0 Pro</span>
+            </h1>
+            <p class="text-[11px] text-gray-400">Đồng bộ Version xuyên suốt • Giữ nguyên định dạng Excel • Lưu lịch sử & Hoàn tác</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="openHistoryModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Sửa Đổi (<span id="historyBadgeCount">0</span>)
+        </button>
+        <button onclick="backupDatabase()" class="bg-slate-800 hover:bg-slate-700 text-gray-200 border border-slate-700 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Sao Lưu
+        </button>
+        <label class="bg-slate-800 hover:bg-slate-700 text-gray-200 border border-slate-700 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 cursor-pointer transition">
+            <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i> Phục Hồi
+            <input type="file" id="restoreInput" class="hidden" accept=".json" onchange="restoreDatabase(event)">
+        </label>
+        <button onclick="exportCurrentBOMToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 shadow transition">
+            <i class="fa-solid fa-file-excel"></i> Xuất File Excel (Giữ Format)
+        </button>
+    </div>
+</header>
+
+<!-- GIAO DIỆN LÀM VIỆC CHÍNH (2 CỘT) -->
+<div class="flex flex-1 overflow-hidden p-4 gap-4">
+    <!-- CỘT TRÁI: Quản lý Cây Thư Mục & BOM -->
+    <aside class="w-80 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col shrink-0">
+        <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
+            <span class="text-xs font-bold uppercase text-gray-600 tracking-wider">
+                <i class="fa-solid fa-folder-tree mr-1.5 text-blue-500"></i> Dự Án & BOMs
+            </span>
+            <button onclick="createNewFolder()" class="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1">
+                <i class="fa-solid fa-plus"></i> Thêm Thư Mục
+            </button>
+        </div>
+
+        <div id="folderTree" class="flex-1 overflow-y-auto p-2 space-y-2.5 text-xs">
+            <!-- Thư mục & BOM hiển thị ở đây -->
+        </div>
+
+        <div class="p-3 border-t border-gray-100 bg-gray-50 rounded-b-lg">
+            <label class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-sm transition">
+                <i class="fa-solid fa-file-arrow-up"></i> Tải File Excel BOM Vào Mục
+                <input type="file" id="fileUploadInput" class="hidden" accept=".xls,.xlsx" onchange="handleExcelUpload(event)">
+            </label>
+        </div>
+    </aside>
+
+    <!-- CỘT PHẢI: Bảng Chi Tiết Cây BOM & Công Cụ -->
+    <main class="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+        <!-- Toolbar: Tìm kiếm toàn hệ thống & Thu gọn/Mở rộng -->
+        <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="relative flex-1 min-w-[340px]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="searchInput" oninput="handleSearchInput()" placeholder="Tìm kiếm Part Number hoặc tên (Enter để quét toàn bộ BOMs)..." 
+                       class="w-full pl-9 pr-24 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+                <button onclick="openGlobalSearchModal()" class="absolute right-1 top-1 bottom-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] px-2.5 rounded font-medium transition border border-gray-200">
+                    Tìm Toàn CSDL
+                </button>
+            </div>
+
+            <!-- Các nút điều khiển hiển thị cây -->
+            <div class="flex items-center gap-2 text-xs">
+                <button onclick="expandAllNodes()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1.5 rounded text-[11px] font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-angles-down"></i> Mở Rộng Hết
+                </button>
+                <button onclick="collapseAllNodes()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1.5 rounded text-[11px] font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-angles-up"></i> Thu Gọn Cây
+                </button>
+            </div>
+
+            <div id="bomHeaderInfo" class="text-xs text-gray-500 flex items-center gap-3">
+                <span class="bg-gray-100 px-2.5 py-1 rounded text-gray-700 font-medium">BOM: <b id="activeBomTitle" class="text-blue-600">Chưa chọn</b></span>
+                <span>Số chi tiết: <b id="itemCount" class="text-gray-800">0</b></span>
+            </div>
+        </div>
+
+        <!-- Bảng Cây BOM -->
+        <div class="flex-1 overflow-y-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-xs">
+                <thead class="bg-gray-50 text-gray-600 uppercase font-semibold sticky top-0 z-10 shadow-sm">
+                    <tr>
+                        <th class="py-2.5 px-3 text-left w-24">Level</th>
+                        <th class="py-2.5 px-3 text-left">Mã Linh Kiện (Part Number)</th>
+                        <th class="py-2.5 px-3 text-left">Tên Linh Kiện (Description)</th>
+                        <th class="py-2.5 px-2 text-center w-20">Thuộc Tính</th>
+                        <th class="py-2.5 px-2 text-center w-16">SL</th>
+                        <th class="py-2.5 px-2 text-center w-14">ĐVT</th>
+                        <th class="py-2.5 px-3 text-left min-w-[180px]">Lý Do Đổi / Ghi Chú</th>
+                        <th class="py-2.5 px-3 text-center w-24">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="bomTableBody" class="divide-y divide-gray-100">
+                    <tr>
+                        <td colspan="8" class="py-16 text-center text-gray-400">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                            Vui lòng chọn một file BOM ở cột bên trái hoặc tải file Excel mới lên.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL 1: NÂNG VERSION TOÀN HỆ THỐNG & NHẬP LÝ DO -->
+<div id="versionModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg max-w-2xl w-full p-6 shadow-2xl">
+        <h3 class="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-arrows-split-up-and-left text-blue-600"></i> Nâng Version & Đồng Bộ Tất Cả Các BOM
+        </h3>
+        <p class="text-xs text-gray-500 mb-4">Mã mới sẽ tự động lan truyền lên các cấp cha ở tất cả các BOM có chứa chi tiết này.</p>
+
+        <div class="bg-slate-50 border p-3 rounded text-xs mb-3 grid grid-cols-2 gap-3">
+            <div>
+                <label class="block font-semibold text-gray-600 mb-1">Mã linh kiện hiện tại:</label>
+                <div id="modalOldPN" class="font-mono text-gray-800 bg-white border px-2.5 py-1 rounded"></div>
+            </div>
+            <div>
+                <label class="block font-semibold text-gray-600 mb-1">Mã sau khi nâng cấp:</label>
+                <input type="text" id="modalNewPN" class="font-mono font-bold text-blue-600 border px-2.5 py-1 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="block text-xs font-semibold text-gray-700 mb-1">
+                Lý do thay đổi kỹ thuật (ECN / Note) <span class="text-rose-500">*</span>:
+            </label>
+            <input type="text" id="modalChangeReason" placeholder="Ví dụ: Đổi NCC hạt nhựa PP; Cải tiến độ bền chốt; ECN-2026-004..." 
+                   class="w-full border px-3 py-1.5 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <span class="text-[11px] text-gray-400 mt-0.5 block">Nội dung này sẽ được ghi vào cột cuối cùng (Ghi chú / 备注) của file Excel khi xuất.</span>
+        </div>
+
+        <div class="border rounded p-3 mb-4 bg-amber-50/50 border-amber-200">
+            <div class="text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                Danh sách các BOM & Cụm cha sẽ tự động nhảy Version (<span id="affectedCount">0</span> BOM bị ảnh hưởng):
+            </div>
+            <div id="crossBomImpactList" class="max-h-40 overflow-y-auto space-y-2 text-xs pr-1"></div>
+        </div>
+
+        <div class="flex justify-end gap-2">
+            <button onclick="closeVersionModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium">Hủy</button>
+            <button onclick="executeGlobalVersionBump()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium shadow">
+                Xác Nhận Đổi Trên Toàn Hệ Thống
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: TÌM KIẾM TOÀN CƠ SỞ DỮ LIỆU & LỊCH SỬ VER CHI TIẾT -->
+<div id="globalSearchModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg max-w-3xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass-location text-blue-600"></i> Tra Cứu Linh Kiện & Lịch Sử Version
+            </h3>
+            <button onclick="closeGlobalSearchModal()" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="globalSearchInput" placeholder="Nhập mã linh kiện cần quét toàn bộ hệ thống..." 
+                   class="flex-1 border px-3 py-2 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+            <button onclick="runGlobalSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs font-medium">
+                Tìm Kiếm
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+            <!-- Khối 1: Các BOM có chứa mã này -->
+            <div>
+                <h4 class="text-xs font-bold uppercase text-gray-600 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-boxes-stacked text-blue-500"></i> Các BOM đang sử dụng mã này (<span id="globalMatchCount">0</span>)
+                </h4>
+                <div id="globalResultsList" class="space-y-1.5 text-xs">
+                    <div class="text-gray-400 italic py-2">Nhập từ khóa và bấm Tìm Kiếm.</div>
+                </div>
+            </div>
+
+            <!-- Khối 2: Lịch sử thay đổi version của mã này -->
+            <div class="border-t pt-3">
+                <h4 class="text-xs font-bold uppercase text-gray-600 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-timeline text-amber-500"></i> Lịch Sử Lên Version Của Linh Kiện Này
+                </h4>
+                <div id="itemVersionHistoryList" class="space-y-2 text-xs">
+                    <div class="text-gray-400 italic py-2">Chưa có dữ liệu lịch sử thay đổi cho linh kiện này.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: LỊCH SỬ CHỈNH SỬA TOÀN BỘ HỆ THỐNG & HOÀN TÁC (ROLLBACK) -->
+<div id="historyModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg max-w-3xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
+        <div class="flex justify-between items-center mb-3 border-b pb-3">
+            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Lịch Sử Thao Tác & Hoàn Tác (Rollback)
+            </h3>
+            <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Bạn có thể xem lại toàn bộ các lần nâng version và bấm <b>"Quay lại"</b> để khôi phục mã ban đầu.</p>
+
+        <div id="globalHistoryList" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+            <!-- Danh sách lịch sử hiển thị ở đây -->
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== CƠ SỞ DỮ LIỆU & TRẠNG THÁI ====================
+const STORAGE_KEY = "ENTERPRISE_BOM_DB_V3";
+let appState = {
+    selectedFolderId: "folder-default",
+    activeBomId: null,
+    folders: [
+        { id: "folder-default", name: "Dự Án Máy Hút Bụi Công Nghiệp" }
+    ],
+    boms: [],       // Danh sách BOM: { id, folderId, name, rawFileBinary, sheetName, colPN_L0, colPN_Lx, colRemark, items: [...] }
+    history: []     // Lịch sử: [ { id, timestamp, targetPN, newPN, reason, affectedBoms: [...] } ]
+};
+
+// Cấu trúc item: { idx, level, rawLevel, pn, name, property, qty, unit, remark, parentIdx, rowInSheet, isModified, isCollapsed }
+
+window.onload = function() {
+    loadDatabase();
+    renderFolderTree();
+    updateHistoryBadge();
+};
+
+function saveDatabase() {
+    // Không lưu rawFileBinary vào localStorage để tránh tràn bộ nhớ (chỉ lưu cấu trúc logic và lịch sử)
+    const stateToSave = {
+        ...appState,
+        boms: appState.boms.map(b => ({
+            ...b,
+            rawFileBinary: null // Dữ liệu nhị phân workbook giữ trong RAM
+        }))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    updateHistoryBadge();
+}
+
+function loadDatabase() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            appState.folders = parsed.folders || appState.folders;
+            appState.boms = parsed.boms || [];
+            appState.history = parsed.history || [];
+            appState.selectedFolderId = parsed.selectedFolderId || "folder-default";
+            appState.activeBomId = parsed.activeBomId || null;
+        } catch(e) {
+            console.error("Lỗi đọc CSDL:", e);
+        }
+    }
+}
+
+function updateHistoryBadge() {
+    document.getElementById("historyBadgeCount").innerText = appState.history.length;
+}
+
+// ==================== 1. QUẢN LÝ THƯ MỤC ====================
+function createNewFolder() {
+    const name = prompt("Nhập tên thư mục dự án mới:");
+    if (!name || !name.trim()) return;
+    const newFolder = { id: "folder-" + Date.now(), name: name.trim() };
+    appState.folders.push(newFolder);
+    appState.selectedFolderId = newFolder.id;
+    saveDatabase();
+    renderFolderTree();
+}
+
+function renderFolderTree() {
+    const container = document.getElementById("folderTree");
+    container.innerHTML = "";
+
+    appState.folders.forEach(folder => {
+        const isSelected = folder.id === appState.selectedFolderId;
+        const bomsInFolder = appState.boms.filter(b => b.folderId === folder.id);
+
+        const folderDiv = document.createElement("div");
+        folderDiv.className = "border border-gray-200 rounded overflow-hidden";
+        folderDiv.innerHTML = `
+            <div class="p-2 ${isSelected ? 'bg-blue-50 text-blue-800 font-bold' : 'bg-gray-50 text-gray-700'} flex justify-between items-center cursor-pointer hover:bg-gray-100" onclick="selectFolder('${folder.id}')">
+                <span class="flex items-center gap-1.5 truncate">
+                    <i class="fa-solid fa-folder${isSelected ? '-open text-blue-600' : ' text-amber-500'}"></i>
+                    ${folder.name}
+                </span>
+                <span class="text-[10px] bg-gray-200 px-1.5 py-0.2 rounded text-gray-600 font-mono">${bomsInFolder.length}</span>
+            </div>
+            <div class="p-1 space-y-1 bg-white">
+                ${bomsInFolder.map(bom => `
+                    <div onclick="selectBOM('${bom.id}')" class="p-1.5 pl-3.5 rounded cursor-pointer flex justify-between items-center text-xs ${appState.activeBomId === bom.id ? 'bg-blue-600 text-white font-medium' : 'hover:bg-gray-100 text-gray-600'}">
+                        <span class="truncate max-w-[190px]"><i class="fa-regular fa-file-excel mr-1 text-emerald-500"></i>${bom.name}</span>
+                        <button onclick="deleteBOM(event, '${bom.id}')" class="text-xs hover:text-red-400 ml-1"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `).join('') || '<div class="text-[11px] text-gray-400 pl-4 py-1 italic">Chưa có BOM nào</div>'}
+            </div>
+        `;
+        container.appendChild(folderDiv);
+    });
+}
+
+function selectFolder(id) {
+    appState.selectedFolderId = id;
+    renderFolderTree();
+}
+
+function selectBOM(id) {
+    appState.activeBomId = id;
+    renderFolderTree();
+    renderBOMTable();
+}
+
+function deleteBOM(event, bomId) {
+    event.stopPropagation();
+    if (!confirm("Bạn có chắc chắn muốn xóa file BOM này khỏi hệ thống?")) return;
+    appState.boms = appState.boms.filter(b => b.id !== bomId);
+    if (appState.activeBomId === bomId) appState.activeBomId = null;
+    saveDatabase();
+    renderFolderTree();
+    renderBOMTable();
+}
+
+// ==================== 2. IMPORT EXCEL & GIỮ NGUYÊN FORMAT ====================
+function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const arrayBuffer = e.target.result;
+            // Đọc workbook giữ nguyên đầy đủ styles, fonts, formats
+            const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+
+            // Xác định vị trí các cột từ dòng tiêu đề (Dòng 0)
+            let colLvl = 1, colPN_L0 = 0, colPN_Lx = 3, colProp = 4, colName = 5, colQty = 7, colUnit = 8, colRemark = 9;
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
+                if (!cell || !cell.v) continue;
+                const txt = String(cell.v).replace(/\s+/g, '');
+                if (txt.includes('阶次')) colLvl = C;
+                else if (txt.includes('主件品号')) colPN_L0 = C;
+                else if (txt.includes('元件品号')) colPN_Lx = C;
+                else if (txt.includes('品名')) colName = C;
+                else if (txt.includes('属性')) colProp = C;
+                else if (txt.includes('组成用量')) colQty = C;
+                else if (txt.includes('单位')) colUnit = C;
+                else if (txt.includes('备注')) colRemark = C;
+            }
+
+            const items = [];
+            const stack = [];
+
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const lvlCell = sheet[XLSX.utils.encode_cell({ r: R, c: colLvl })];
+                if (!lvlCell || lvlCell.v === undefined || lvlCell.v === '') continue;
+
+                const rawLvlStr = String(lvlCell.v).trim();
+                let level = rawLvlStr.includes('.') ? (rawLvlStr.match(/\./g) || []).length : (parseInt(rawLvlStr) || 0);
+
+                let pnCell = (level === 0) ? sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })] : sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
+                if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
+                if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })];
+                
+                const pn = pnCell && pnCell.v ? String(pnCell.v).trim() : '';
+                if (!pn) continue;
+
+                const nameCell = sheet[XLSX.utils.encode_cell({ r: R, c: colName })];
+                const propCell = sheet[XLSX.utils.encode_cell({ r: R, c: colProp })];
+                const qtyCell = sheet[XLSX.utils.encode_cell({ r: R, c: colQty })];
+                const unitCell = sheet[XLSX.utils.encode_cell({ r: R, c: colUnit })];
+                const remarkCell = sheet[XLSX.utils.encode_cell({ r: R, c: colRemark })];
+
+                while (stack.length > 0 && stack[stack.length - 1].level >= level) stack.pop();
+                const parentIdx = stack.length > 0 ? stack[stack.length - 1].idx : null;
+
+                items.push({
+                    idx: items.length,
+                    level: level,
+                    rawLevel: rawLvlStr,
+                    pn: pn,
+                    name: nameCell ? String(nameCell.v).trim() : '',
+                    property: propCell ? String(propCell.v).trim() : '',
+                    qty: qtyCell ? (parseFloat(qtyCell.v) || 0) : 0,
+                    unit: unitCell ? String(unitCell.v).trim() : 'PCS',
+                    remark: remarkCell && remarkCell.v ? String(remarkCell.v).trim() : '',
+                    parentIdx: parentIdx,
+                    rowInSheet: R,
+                    isModified: false,
+                    isCollapsed: false
+                });
+
+                stack.push({ level: level, idx: items.length - 1 });
+            }
+
+            const newBOM = {
+                id: "bom-" + Date.now(),
+                folderId: appState.selectedFolderId,
+                name: file.name,
+                rawFileBinary: arrayBuffer,
+                sheetName: sheetName,
+                colPN_L0: colPN_L0,
+                colPN_Lx: colPN_Lx,
+                colRemark: colRemark,
+                items: items
+            };
+
+            appState.boms.push(newBOM);
+            appState.activeBomId = newBOM.id;
+            saveDatabase();
+            renderFolderTree();
+            renderBOMTable();
+            alert(`Tải thành công file BOM gồm ${items.length} chi tiết!`);
+        } catch(err) {
+            console.error(err);
+            alert("Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng file!");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ==================== 3. XUẤT EXCEL GIỮ NGUYÊN ĐỊNH DẠNG GỐC ====================
+function exportCurrentBOMToExcel() {
+    const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
+    if (!activeBom) {
+        alert("Vui lòng chọn 1 BOM cần xuất file!");
+        return;
+    }
+
+    if (!activeBom.rawFileBinary) {
+        alert("File nhị phân gốc không có sẵn trong phiên này. Hệ thống sẽ xuất file chuẩn hóa.");
+        const exportData = activeBom.items.map(item => ({
+            "阶  次": item.rawLevel,
+            "元件品号": item.pn,
+            "品     名": item.name,
+            "属    性": item.property,
+            "组成用量": item.qty,
+            "单位": item.unit,
+            "备   注": item.remark
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BOM_Updated");
+        XLSX.writeFile(wb, `${activeBom.name.replace(/\.[^/.]+$/, "")}_Updated.xlsx`);
+        return;
+    }
+
+    // Đọc lại chính xác file nhị phân gốc đã lưu và cập nhật các ô giá trị
+    const workbook = XLSX.read(activeBom.rawFileBinary, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true });
+    const sheet = workbook.Sheets[activeBom.sheetName];
+
+    activeBom.items.forEach(item => {
+        const colPN = (item.level === 0) ? activeBom.colPN_L0 : activeBom.colPN_Lx;
+        const cellPNRef = XLSX.utils.encode_cell({ r: item.rowInSheet, c: colPN });
+        if (!sheet[cellPNRef]) sheet[cellPNRef] = { t: 's', v: item.pn };
+        sheet[cellPNRef].v = item.pn;
+        sheet[cellPNRef].w = item.pn;
+
+        // Cập nhật cột Ghi chú / Lý do chỉnh sửa
+        if (item.remark) {
+            const cellRemarkRef = XLSX.utils.encode_cell({ r: item.rowInSheet, c: activeBom.colRemark });
+            if (!sheet[cellRemarkRef]) sheet[cellRemarkRef] = { t: 's', v: item.remark };
+            sheet[cellRemarkRef].v = item.remark;
+            sheet[cellRemarkRef].w = item.remark;
+        }
+    });
+
+    // Xuất ra file giữ nguyên định dạng, cỡ chữ và độ rộng cột
+    XLSX.writeFile(workbook, `${activeBom.name.replace(/\.[^/.]+$/, "")}_Updated.xls`);
+}
+
+// ==================== 4. THU GỌN / MỞ RỘNG CÂY (TREE COLLAPSE) ====================
+function toggleCollapse(itemIdx) {
+    const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
+    if (!activeBom) return;
+    const item = activeBom.items[itemIdx];
+    item.isCollapsed = !item.isCollapsed;
+    renderBOMTable();
+}
+
+function expandAllNodes() {
+    const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
+    if (!activeBom) return;
+    activeBom.items.forEach(i => i.isCollapsed = false);
+    renderBOMTable();
+}
+
+function collapseAllNodes() {
+    const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
+    if (!activeBom) return;
+    // Thu gọn tất cả các cụm cha có chứa con
+    const parentIdxSet = new Set(activeBom.items.map(i => i.parentIdx).filter(x => x !== null));
+    activeBom.items.forEach(i => {
+        if (parentIdxSet.has(i.idx)) i.isCollapsed = true;
+    });
+    renderBOMTable();
+}
+
+// Kiểm tra xem item có bị ẩn do cấp cha đang thu gọn hay không
+function isItemHiddenByAncestor(bom, item) {
+    let currParent = item.parentIdx;
+    while (currParent !== null && currParent !== undefined) {
+        const p = bom.items[currParent];
+        if (p && p.isCollapsed) return true;
+        currParent = p ? p.parentIdx : null;
+    }
+    return false;
+}
+
+// ==================== 5. RENDER BẢNG BOM VỚI HIGHLIGHT VÀNG ====================
+function renderBOMTable(searchFilter = "") {
+    const tbody = document.getElementById("bomTableBody");
+    tbody.innerHTML = "";
+
+    const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
+    if (!activeBom) {
+        document.getElementById("activeBomTitle").innerText = "Chưa chọn";
+        document.getElementById("itemCount").innerText = "0";
+        tbody.innerHTML = `<tr><td colspan="8" class="py-16 text-center text-gray-400">Chọn 1 BOM bên trái để hiển thị</td></tr>`;
+        return;
+    }
+
+    document.getElementById("activeBomTitle").innerText = activeBom.name;
+    document.getElementById("itemCount").innerText = activeBom.items.length;
+
+    // Xác định các item có con
+    const parentIndices = new Set(activeBom.items.map(i => i.parentIdx).filter(x => x !== null));
+
+    activeBom.items.forEach(item => {
+        // Nếu không thỏa bộ lọc hoặc bị thu gọn bởi cha
+        if (!searchFilter && isItemHiddenByAncestor(activeBom, item)) return;
+
+        if (searchFilter) {
+            const match = item.pn.toLowerCase().includes(searchFilter.toLowerCase()) || 
+                          item.name.toLowerCase().includes(searchFilter.toLowerCase());
+            if (!match) return;
+        }
+
+        const tr = document.createElement("tr");
+        const hasChildren = parentIndices.has(item.idx);
+
+        // Highlight màu vàng nếu item đã bị thay đổi
+        let rowClass = item.isModified ? "modified-highlight" : (item.level === 0 ? 'level-0' : (item.level === 1 ? 'level-1' : 'hover:bg-blue-50/40'));
+        tr.className = `${rowClass} transition-colors`;
+
+        const indentClass = item.level > 0 ? `indent-${Math.min(item.level, 5)}` : '';
+
+        // Nút toggle thu gọn/mở rộng
+        let collapseIcon = '';
+        if (hasChildren) {
+            collapseIcon = `
+                <button onclick="toggleCollapse(${item.idx})" class="mr-1.5 text-gray-500 hover:text-blue-600 focus:outline-none">
+                    <i class="fa-solid ${item.isCollapsed ? 'fa-square-plus text-blue-600' : 'fa-square-minus text-gray-400'}"></i>
+                </button>
+            `;
+        } else {
+            collapseIcon = `<span class="inline-block w-4 mr-1"></span>`;
+        }
+
+        // Huy hiệu đã sửa
+        const modifiedBadge = item.isModified ? `
+            <span class="bg-amber-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold ml-1.5 shadow-sm">
+                <i class="fa-solid fa-pen mr-0.5"></i> ĐÃ ĐỔI VER
+            </span>
+        ` : '';
+
+        tr.innerHTML = `
+            <td class="py-2.5 px-3 font-mono text-gray-500 whitespace-nowrap">L${item.level}</td>
+            <td class="py-2.5 px-3 font-mono font-semibold text-gray-900 ${indentClass} flex items-center">
+                ${collapseIcon}
+                <span>${highlightText(item.pn, searchFilter)}</span>
+                ${modifiedBadge}
+            </td>
+            <td class="py-2.5 px-3 text-gray-700">${highlightText(item.name, searchFilter)}</td>
+            <td class="py-2.5 px-2 text-center whitespace-nowrap">
+                <span class="px-2 py-0.5 rounded text-[10px] ${item.property.includes('自制') ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+                    ${item.property || 'N/A'}
+                </span>
+            </td>
+            <td class="py-2.5 px-2 text-center font-semibold text-gray-700">${item.qty}</td>
+            <td class="py-2.5 px-2 text-center text-gray-500">${item.unit}</td>
+            <td class="py-2.5 px-3 text-gray-600 italic max-w-xs truncate" title="${item.remark || ''}">
+                ${item.remark ? `<span class="text-amber-800 font-medium"><i class="fa-solid fa-tag text-[10px] mr-1"></i>${item.remark}</span>` : '<span class="text-gray-300">-</span>'}
+            </td>
+            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                <button onclick="openVersionModalForPart('${item.pn}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1 rounded text-[11px] font-medium transition flex items-center gap-1 mx-auto">
+                    <i class="fa-solid fa-code-branch"></i> Lên Ver
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function highlightText(text, kw) {
+    if (!kw) return text;
+    const reg = new RegExp(`(${kw})`, 'gi');
+    return text.replace(reg, `<mark class="bg-yellow-300 px-0.5 rounded">$1</mark>`);
+}
+
+function handleSearchInput() {
+    renderBOMTable(document.getElementById("searchInput").value.trim());
+}
+
+// ==================== 6. THUẬT TOÁN BUMP VERSION ====================
+function calculateNextVersion(pn) {
+    const mLetter = pn.match(/^(.*)-([A-Z])$/);
+    if (mLetter) {
+        const base = mLetter[1], ver = mLetter[2];
+        return `${base}-${ver === 'Z' ? 'AA' : String.fromCharCode(ver.charCodeAt(0) + 1)}`;
+    }
+    const mEnum = pn.match(/^(.*[A-Za-z])(\d{3})$/);
+    if (mEnum) {
+        const base = mEnum[1], ver = parseInt(mEnum[2], 10) + 1;
+        return `${base}${String(ver).padStart(3, '0')}`;
+    }
+    const mNum = pn.match(/^(.*)-(\d{3})$/);
+    if (mNum) {
+        const base = mNum[1], ver = parseInt(mNum[2], 10) + 1;
+        return `${base}-${String(ver).padStart(3, '0')}`;
+    }
+    return `${pn}-002`;
+}
+
+// ==================== 7. NÂNG VERSION, GHI LÝ DO & TỰ ĐỘNG LƯU LỊCH SỬ ====================
+let pendingTargetPN = "";
+let pendingImpactAnalysis = [];
+
+function openVersionModalForPart(targetPN) {
+    pendingTargetPN = targetPN;
+    const newPN = calculateNextVersion(targetPN);
+
+    document.getElementById("modalOldPN").innerText = targetPN;
+    document.getElementById("modalNewPN").value = newPN;
+    document.getElementById("modalChangeReason").value = "";
+
+    pendingImpactAnalysis = [];
+
+    appState.boms.forEach(bom => {
+        const matches = bom.items.filter(item => item.pn === targetPN);
+        if (matches.length > 0) {
+            matches.forEach(matchItem => {
+                const parentChain = [];
+                let currIdx = matchItem.parentIdx;
+                while (currIdx !== null && currIdx !== undefined) {
+                    const parentItem = bom.items[currIdx];
+                    parentChain.push({
+                        idx: parentItem.idx,
+                        oldPN: parentItem.pn,
+                        newPN: calculateNextVersion(parentItem.pn),
+                        level: parentItem.level,
+                        name: parentItem.name,
+                        oldRemark: parentItem.remark
+                    });
+                    currIdx = parentItem.parentIdx;
+                }
+                pendingImpactAnalysis.push({
+                    bomId: bom.id,
+                    bomName: bom.name,
+                    itemIdx: matchItem.idx,
+                    oldPN: matchItem.pn,
+                    oldRemark: matchItem.remark,
+                    parentChain: parentChain
+                });
+            });
+        }
+    });
+
+    document.getElementById("affectedCount").innerText = new Set(pendingImpactAnalysis.map(x => x.bomId)).size;
+    const listContainer = document.getElementById("crossBomImpactList");
+    listContainer.innerHTML = "";
+
+    pendingImpactAnalysis.forEach(impact => {
+        const div = document.createElement("div");
+        div.className = "p-2 bg-white rounded border border-gray-200 text-xs";
+        let chainHtml = impact.parentChain.map(p => `
+            <div class="pl-4 flex items-center gap-1 text-[11px] text-gray-600">
+                <i class="fa-solid fa-arrow-turn-up rotate-90 text-gray-400"></i>
+                [L${p.level}] ${p.oldPN} ➔ <b class="text-blue-600">${p.newPN}</b> (${p.name})
+            </div>
+        `).join('');
+
+        div.innerHTML = `
+            <div class="font-bold text-gray-800"><i class="fa-regular fa-file-lines text-blue-500 mr-1"></i> Trong BOM: ${impact.bomName}</div>
+            <div class="pl-2 font-mono text-gray-500">[Mục tiêu] ${targetPN} ➔ <span class="text-emerald-600 font-bold">${newPN}</span></div>
+            ${chainHtml}
+        `;
+        listContainer.appendChild(div);
+    });
+
+    document.getElementById("versionModal").classList.remove("hidden");
+}
+
+function closeVersionModal() {
+    document.getElementById("versionModal").classList.add("hidden");
+}
+
+function executeGlobalVersionBump() {
+    const finalNewPN = document.getElementById("modalNewPN").value.trim();
+    const reason = document.getElementById("modalChangeReason").value.trim();
+
+    if (!finalNewPN) {
+        alert("Vui lòng nhập Part Number mới!");
+        return;
+    }
+    if (!reason) {
+        alert("Vui lòng nhập lý do thay đổi kỹ thuật để ghi nhận vào lịch sử và file Excel!");
+        return;
+    }
+
+    const historyRecord = {
+        id: "hist-" + Date.now(),
+        timestamp: new Date().toLocaleString('vi-VN'),
+        targetPN: pendingTargetPN,
+        newPN: finalNewPN,
+        reason: reason,
+        affectedBoms: []
+    };
+
+    // Tiến hành cập nhật trên tất cả các BOM
+    pendingImpactAnalysis.forEach(impact => {
+        const bom = appState.boms.find(b => b.id === impact.bomId);
+        if (bom) {
+            const bomChangeRecord = {
+                bomId: bom.id,
+                bomName: bom.name,
+                changes: []
+            };
+
+            // Cập nhật chi tiết mục tiêu
+            const targetItem = bom.items[impact.itemIdx];
+            bomChangeRecord.changes.push({
+                idx: targetItem.idx,
+                oldPN: targetItem.pn,
+                newPN: finalNewPN,
+                oldRemark: targetItem.remark,
+                newRemark: reason
+            });
+
+            targetItem.pn = finalNewPN;
+            targetItem.remark = reason;
+            targetItem.isModified = true;
+
+            // Cập nhật các cấp cha
+            impact.parentChain.forEach(p => {
+                const parentItem = bom.items[p.idx];
+                bomChangeRecord.changes.push({
+                    idx: parentItem.idx,
+                    oldPN: parentItem.pn,
+                    newPN: p.newPN,
+                    oldRemark: parentItem.remark,
+                    newRemark: `Kế thừa do [${finalNewPN}] lên ver: ${reason}`
+                });
+
+                parentItem.pn = p.newPN;
+                parentItem.remark = `Kế thừa do [${finalNewPN}] lên ver: ${reason}`;
+                parentItem.isModified = true;
+            });
+
+            historyRecord.affectedBoms.push(bomChangeRecord);
+        }
+    });
+
+    appState.history.unshift(historyRecord);
+    saveDatabase();
+    closeVersionModal();
+    renderBOMTable();
+    alert(`Đã cập nhật đồng bộ thành công! Các chi tiết thay đổi đã được highlight vàng.`);
+}
+
+// ==================== 8. HOÀN TÁC / QUAY LẠI (ROLLBACK) ====================
+function openHistoryModal() {
+    const container = document.getElementById("globalHistoryList");
+    container.innerHTML = "";
+
+    if (appState.history.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-gray-400 italic">Chưa có lịch sử thay đổi nào được ghi nhận.</div>`;
+        document.getElementById("historyModal").classList.remove("hidden");
+        return;
+    }
+
+    appState.history.forEach((h, hIdx) => {
+        const card = document.createElement("div");
+        card.className = "border border-gray-200 rounded p-3 bg-white shadow-sm";
+        
+        let bomsDetail = h.affectedBoms.map(b => `
+            <div class="mt-1 pl-2 border-l-2 border-blue-400">
+                <span class="font-bold text-gray-700">${b.bomName}</span>: ${b.changes.length} chi tiết thay đổi
+            </div>
+        `).join('');
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-[11px] text-gray-400 font-mono"><i class="fa-regular fa-clock mr-1"></i>${h.timestamp}</span>
+                    <div class="font-bold text-gray-900 mt-0.5">
+                        <span class="font-mono text-gray-600">${h.targetPN}</span> ➔ <span class="font-mono text-blue-600">${h.newPN}</span>
+                    </div>
+                    <div class="text-xs text-amber-700 mt-1 font-medium"><i class="fa-solid fa-comment-dots mr-1"></i>Lý do: ${h.reason}</div>
+                    <div class="mt-2 text-[11px] text-gray-600">${bomsDetail}</div>
+                </div>
+                <button onclick="rollbackHistory(${hIdx})" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left"></i> Quay Lại
+                </button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    document.getElementById("historyModal").classList.remove("hidden");
+}
+
+function closeHistoryModal() {
+    document.getElementById("historyModal").classList.add("hidden");
+}
+
+function rollbackHistory(historyIndex) {
+    if (!confirm("Bạn có chắc chắn muốn hoàn tác lần thay đổi này? Mã linh kiện và cấp cha sẽ quay về giá trị ban đầu.")) return;
+
+    const record = appState.history[historyIndex];
+
+    record.affectedBoms.forEach(bRecord => {
+        const bom = appState.boms.find(b => b.id === bRecord.bomId);
+        if (bom) {
+            bRecord.changes.forEach(ch => {
+                const item = bom.items[ch.idx];
+                if (item) {
+                    item.pn = ch.oldPN;
+                    item.remark = ch.oldRemark;
+                    item.isModified = false;
+                }
+            });
+        }
+    });
+
+    // Xóa bản ghi lịch sử này
+    appState.history.splice(historyIndex, 1);
+    saveDatabase();
+    openHistoryModal();
+    renderBOMTable();
+    alert("Đã hoàn tác thành công!");
+}
+
+// ==================== 9. TÌM KIẾM TOÀN HỆ THỐNG & XEM LỊCH SỬ ITEM ====================
+function openGlobalSearchModal() {
+    const curKw = document.getElementById("searchInput").value.trim();
+    document.getElementById("globalSearchInput").value = curKw;
+    document.getElementById("globalSearchModal").classList.remove("hidden");
+    if (curKw) runGlobalSearch();
+}
+
+function closeGlobalSearchModal() {
+    document.getElementById("globalSearchModal").classList.add("hidden");
+}
+
+function runGlobalSearch() {
+    const kw = document.getElementById("globalSearchInput").value.trim().toLowerCase();
+    if (!kw) return;
+
+    const resContainer = document.getElementById("globalResultsList");
+    const histContainer = document.getElementById("itemVersionHistoryList");
+    resContainer.innerHTML = "";
+    histContainer.innerHTML = "";
+
+    // 1. Quét tìm tất cả các BOM có chứa mã này
+    let matchCount = 0;
+    appState.boms.forEach(bom => {
+        const matchedItems = bom.items.filter(i => i.pn.toLowerCase().includes(kw) || i.name.toLowerCase().includes(kw));
+        if (matchedItems.length > 0) {
+            matchedItems.forEach(item => {
+                matchCount++;
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "p-2 bg-gray-50 hover:bg-blue-50/50 rounded border flex justify-between items-center transition";
+                itemDiv.innerHTML = `
+                    <div>
+                        <div class="font-mono font-bold text-gray-800">${item.pn} <span class="font-normal text-gray-500">- ${item.name}</span></div>
+                        <div class="text-[11px] text-gray-500">
+                            Trong BOM: <b>${bom.name}</b> • Cấp: <b>Level ${item.level}</b> • SL: <b>${item.qty} ${item.unit}</b>
+                        </div>
+                    </div>
+                    <button onclick="jumpToBOM('${bom.id}', '${item.pn}')" class="bg-blue-600 text-white px-2.5 py-1 rounded text-[11px] font-medium hover:bg-blue-700">
+                        Mở BOM Này
+                    </button>
+                `;
+                resContainer.appendChild(itemDiv);
+            });
+        }
+    });
+
+    document.getElementById("globalMatchCount").innerText = matchCount;
+    if (matchCount === 0) {
+        resContainer.innerHTML = `<div class="text-gray-400 italic py-2">Không tìm thấy linh kiện nào khớp với từ khóa trong toàn bộ cơ sở dữ liệu.</div>`;
+    }
+
+    // 2. Lấy lịch sử lên version của mã linh kiện này
+    const relatedHistory = appState.history.filter(h => 
+        h.targetPN.toLowerCase().includes(kw) || h.newPN.toLowerCase().includes(kw)
+    );
+
+    if (relatedHistory.length > 0) {
+        relatedHistory.forEach(h => {
+            const hDiv = document.createElement("div");
+            hDiv.className = "p-2 bg-amber-50/60 border border-amber-200 rounded";
+            hDiv.innerHTML = `
+                <div class="flex justify-between">
+                    <span class="font-mono font-bold text-amber-900">${h.targetPN} ➔ ${h.newPN}</span>
+                    <span class="text-[10px] text-gray-500 font-mono">${h.timestamp}</span>
+                </div>
+                <div class="text-[11px] text-gray-700 mt-1"><b>Lý do:</b> ${h.reason}</div>
+            `;
+            histContainer.appendChild(hDiv);
+        });
+    } else {
+        histContainer.innerHTML = `<div class="text-gray-400 italic py-2">Chưa có lịch sử lên version nào cho linh kiện này.</div>`;
+    }
+}
+
+function jumpToBOM(bomId, targetPN) {
+    closeGlobalSearchModal();
+    selectBOM(bomId);
+    document.getElementById("searchInput").value = targetPN;
+    renderBOMTable(targetPN);
+}
+
+// ==================== 10. SAO LƯU & PHỤC HỒI ====================
+function backupDatabase() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `BOM_Database_Backup_${new Date().toISOString().slice(0,10)}.json`);
+    dlAnchor.click();
+}
+
+function restoreDatabase(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            appState = JSON.parse(e.target.result);
+            saveDatabase();
+            renderFolderTree();
+            renderBOMTable();
+            updateHistoryBadge();
+            alert("Phục hồi CSDL thành công!");
+        } catch(err) {
+            alert("File sao lưu không hợp lệ!");
+        }
+    };
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>
