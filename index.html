@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Trị BOM & Phiên Bản Linh Kiện V4</title>
-    <!-- Tailwind CSS & FontAwesome -->
+    <title>Hệ Thống Quản Trị BOM & Phiên Bản Linh Kiện V5</title>
+    <!-- Tailwind CSS, FontAwesome & SheetJS Style -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Thư viện SheetJS Style hỗ trợ bôi màu nền ô khi xuất Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <style>
         .level-0 { background-color: #f1f5f9; font-weight: 700; border-left: 4px solid #0f172a; }
@@ -30,9 +29,9 @@
         <div>
             <h1 class="text-base font-bold tracking-wide flex items-center gap-2">
                 HỆ THỐNG QUẢN TRỊ BOM & PHIÊN BẢN LINH KIỆN
-                <span class="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-normal">v4.0 Enterprise</span>
+                <span class="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-normal">v5.0 Pro Batch</span>
             </h1>
-            <p class="text-[11px] text-gray-400">Xuất Excel Bôi Vàng • 3 Phân Hệ Độc Lập • Lan Truyền Version Đa Cấp</p>
+            <p class="text-[11px] text-gray-400">Up Nhiều File • Tìm Kiếm Linh Kiện ECN • Lên Nhiều Ver Trong 1 Lần</p>
         </div>
     </div>
     <div class="flex items-center gap-2">
@@ -49,56 +48,58 @@
     </div>
 </header>
 
-<!-- THANH CHUYỂN TAB ĐIỀU HƯỚNG -->
+<!-- THANH CHUYỂN TAB -->
 <nav class="bg-white border-b border-gray-200 px-6 flex gap-6 text-xs font-semibold">
     <button onclick="switchTab('tab-view')" id="btn-tab-view" class="py-3 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition">
         <i class="fa-solid fa-folder-tree text-sm"></i> 1. DUYỆT CẤU TRÚC BOM
     </button>
     <button onclick="switchTab('tab-ecn')" id="btn-tab-ecn" class="py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-800 flex items-center gap-2 transition">
-        <i class="fa-solid fa-code-branch text-sm text-amber-500"></i> 2. QUẢN LÝ LÊN VER (ECN)
+        <i class="fa-solid fa-code-branch text-sm text-amber-500"></i> 2. QUẢN LÝ LÊN VER (ECN ĐA LINH KIỆN)
     </button>
     <button onclick="switchTab('tab-search')" id="btn-tab-search" class="py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-800 flex items-center gap-2 transition">
         <i class="fa-solid fa-magnifying-glass-location text-sm text-purple-500"></i> 3. TRA CỨU TOÀN HỆ THỐNG
     </button>
 </nav>
 
-<!-- KHÔNG GIAN LÀM VIỆC CHÍNH -->
+<!-- NỘI DUNG CHÍNH -->
 <div class="flex-1 overflow-hidden p-4">
 
-    <!-- ==================== PHÂN HỆ 1: DUYỆT CẤU TRÚC BOM ==================== -->
+    <!-- ==================== TAB 1: DUYỆT CẤU TRÚC BOM ==================== -->
     <div id="tab-view" class="h-full flex gap-4">
-        <!-- Cột trái: Thư mục & File BOM -->
+        <!-- Cột trái: Thư mục & Danh sách BOM -->
         <aside class="w-80 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col shrink-0">
             <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
                 <span class="text-xs font-bold uppercase text-gray-600 tracking-wider">
                     <i class="fa-solid fa-folder mr-1.5 text-blue-500"></i> Cây Thư Mục & BOMs
                 </span>
                 <button onclick="createNewFolder()" class="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1">
-                    <i class="fa-solid fa-plus"></i> Thêm Thư Mục
+                    <i class="fa-solid fa-plus"></i> Thêm Mục
                 </button>
             </div>
             <div id="folderTree" class="flex-1 overflow-y-auto p-2 space-y-2.5 text-xs"></div>
+            <!-- Upload nhiều file cùng lúc -->
             <div class="p-3 border-t border-gray-100 bg-gray-50 rounded-b-lg">
-                <label class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-sm transition">
-                    <i class="fa-solid fa-file-arrow-up"></i> Tải File Excel Vào Thư Mục
-                    <input type="file" id="fileUploadInput" class="hidden" accept=".xls,.xlsx" onchange="handleExcelUpload(event)">
+                <label class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-sm transition text-center">
+                    <i class="fa-solid fa-file-arrow-up"></i> Tải Nhiều File Excel BOM
+                    <input type="file" id="fileUploadInput" class="hidden" accept=".xls,.xlsx" multiple onchange="handleExcelUpload(event)">
                 </label>
+                <div class="text-[10px] text-gray-400 text-center mt-1">Giữ phím Ctrl/Shift để chọn nhiều file</div>
             </div>
         </aside>
 
-        <!-- Cột phải: Bảng Cây BOM -->
+        <!-- Cột phải: Bảng BOM -->
         <main class="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-            <div class="p-3.5 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
+            <div class="p-3 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
                 <div class="relative flex-1 max-w-md">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
-                    <input type="text" id="viewerSearchInput" oninput="handleViewerSearch()" placeholder="Lọc nhanh Part Number hoặc tên trong BOM này..." 
+                    <input type="text" id="viewerSearchInput" oninput="handleViewerSearch()" placeholder="Lọc nhanh Part Number hoặc tên..." 
                            class="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="expandAllNodes()" class="bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-angles-down text-blue-500"></i> Mở Rộng Cây
+                        <i class="fa-solid fa-angles-down text-blue-500"></i> Mở Rộng
                     </button>
                     <button onclick="collapseAllNodes()" class="bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1">
                         <i class="fa-solid fa-angles-up text-amber-500"></i> Thu Gọn
@@ -123,79 +124,105 @@
                         </tr>
                     </thead>
                     <tbody id="bomViewerBody" class="divide-y divide-gray-100">
-                        <tr><td colspan="7" class="py-20 text-center text-gray-400">Vui lòng chọn 1 BOM từ cột bên trái để hiển thị cấu trúc.</td></tr>
+                        <tr><td colspan="7" class="py-20 text-center text-gray-400">Chọn 1 BOM từ cột bên trái để duyệt cấu trúc.</td></tr>
                     </tbody>
                 </table>
             </div>
         </main>
     </div>
 
-    <!-- ==================== PHÂN HỆ 2: QUẢN LÝ LÊN VER (ECN) ==================== -->
+    <!-- ==================== TAB 2: QUẢN LÝ LÊN VER (ECN ĐA LINH KIỆN) ==================== -->
     <div id="tab-ecn" class="h-full hidden flex gap-4">
-        <!-- Cột trái: Form thiết lập Phiếu ECN -->
-        <div class="w-96 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col shrink-0 p-4 overflow-y-auto">
-            <h3 class="text-sm font-bold text-gray-900 border-b pb-2 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-file-pen text-amber-500"></i> Lập Lệnh Nâng Version (ECN)
+        <!-- Cột 1: Tìm kiếm & Thêm linh kiện vào đợt ECN -->
+        <div class="w-[420px] bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col shrink-0 p-4 overflow-hidden">
+            <h3 class="text-sm font-bold text-gray-900 border-b pb-2 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass text-blue-600"></i> 1. Tìm & Chọn Linh Kiện Lên Ver
             </h3>
 
-            <div class="space-y-3.5 text-xs">
-                <div>
-                    <label class="block font-semibold text-gray-700 mb-1">1. Chọn BOM nguồn:</label>
-                    <select id="ecnBomSelect" onchange="loadPartsForECN()" class="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500"></select>
+            <!-- Bộ lọc phạm vi BOM và Ô tìm kiếm -->
+            <div class="space-y-2 mb-3">
+                <select id="ecnBomFilter" onchange="searchPartsForECN()" class="w-full border rounded p-1.5 text-xs bg-gray-50 focus:ring-2 focus:ring-blue-500 font-medium"></select>
+                <div class="relative">
+                    <input type="text" id="ecnSearchPartInput" oninput="searchPartsForECN()" placeholder="Gõ Part Number (vd: 11V2106, 0117, Tank...)" 
+                           class="w-full pl-8 pr-3 py-2 border border-blue-400 rounded text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-400"><i class="fa-solid fa-search"></i></span>
                 </div>
+            </div>
 
-                <div>
-                    <label class="block font-semibold text-gray-700 mb-1">2. Chọn linh kiện cần nâng cấp:</label>
-                    <select id="ecnPartSelect" onchange="handlePartSelectedForECN()" class="w-full border rounded p-2 text-xs font-mono focus:ring-2 focus:ring-blue-500"></select>
-                </div>
-
-                <div class="bg-gray-50 p-2.5 rounded border border-gray-200 space-y-1 text-gray-600">
-                    <div><b>Cấp độ:</b> <span id="ecnPartLevel" class="font-bold text-blue-600">-</span></div>
-                    <div><b>Tên chi tiết:</b> <span id="ecnPartName">-</span></div>
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-gray-700 mb-1">3. Mã mới sau nâng cấp:</label>
-                    <input type="text" id="ecnNewPN" class="w-full border p-2 rounded font-mono font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-gray-700 mb-1">4. Lý do thay đổi kỹ thuật (ECN) <span class="text-rose-500">*</span>:</label>
-                    <textarea id="ecnReason" rows="3" placeholder="Ghi rõ lý do (ví dụ: Đổi nhà cung cấp, cải tiến độ bền chốt...). Nội dung này sẽ được bôi vàng và ghi vào cột cuối file Excel." 
-                              class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-
-                <button onclick="applyECNChange()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded shadow transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrows-split-up-and-left"></i> Phê Duyệt & Phát Hành ECN
-                </button>
+            <!-- Bảng kết quả tìm kiếm linh kiện -->
+            <div class="flex-1 overflow-y-auto border border-gray-200 rounded divide-y divide-gray-100 bg-gray-50/50" id="ecnPartSearchResults">
+                <div class="p-4 text-center text-gray-400 text-xs italic">Nhập từ khóa tìm kiếm Part Number ở trên.</div>
             </div>
         </div>
 
-        <!-- Cột phải: Xem trước tác động & Lịch sử Rollback -->
+        <!-- Cột 2: Danh sách các linh kiện trong đợt ECN & Cấu hình Version -->
         <div class="flex-1 flex flex-col gap-4 overflow-hidden">
-            <!-- Xem trước tác động lan truyền -->
-            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col max-h-56 overflow-hidden">
-                <div class="text-xs font-bold uppercase text-gray-700 mb-2 flex items-center justify-between">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-network-wired text-blue-500"></i> Mô Phỏng Tác Động Lan Truyền (Impact Preview)</span>
-                    <span class="text-amber-600 text-[11px] font-normal" id="ecnImpactCount">0 BOM bị ảnh hưởng</span>
+            <!-- Danh sách linh kiện được chọn nâng version (Batch Cart) -->
+            <div class="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-center border-b pb-2 mb-3">
+                    <div class="text-xs font-bold uppercase text-gray-700 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-amber-500"></i>
+                        2. Danh Sách Linh Kiện Lên Ver Đợt Này (<span id="stagedCount" class="text-blue-600 font-bold">0</span> chi tiết)
+                    </div>
+                    <button onclick="clearECNCart()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Xóa hết
+                    </button>
                 </div>
-                <div id="ecnImpactList" class="flex-1 overflow-y-auto space-y-2 text-xs border rounded p-2 bg-gray-50">
-                    <div class="text-gray-400 italic py-2">Hãy chọn linh kiện ở cột bên trái để phân tích các cấp cha bị nhảy version.</div>
+
+                <div class="flex-1 overflow-y-auto pr-1">
+                    <table class="min-w-full divide-y divide-gray-200 text-xs">
+                        <thead class="bg-gray-50 text-gray-600 font-semibold sticky top-0">
+                            <tr>
+                                <th class="py-2 px-2 text-left">Mã Hiện Tại</th>
+                                <th class="py-2 px-2 text-left">Tên Linh Kiện</th>
+                                <th class="py-2 px-2 text-center w-24">Số Bước Ver</th>
+                                <th class="py-2 px-2 text-left w-44">Mã Sau Lên Ver</th>
+                                <th class="py-2 px-2 text-center w-14">Hủy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ecnCartTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="py-12 text-center text-gray-400 italic">Chưa có linh kiện nào được chọn. Hãy tìm và bấm "+ Thêm" ở cột bên trái.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Thiết lập Thông Tin Phiếu ECN & Phát Hành -->
+                <div class="border-t pt-3 mt-3 bg-amber-50/40 -mx-4 -mb-4 p-4 rounded-b-lg border-amber-200">
+                    <div class="grid grid-cols-3 gap-3 mb-3 text-xs">
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1">Mã Lệnh ECN:</label>
+                            <input type="text" id="ecnBatchCode" value="ECN-2026-001" class="w-full border p-1.5 rounded font-mono font-bold text-gray-800 bg-white">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block font-semibold text-gray-700 mb-1">Lý do thay đổi kỹ thuật (Ghi vào cột cuối Excel) <span class="text-rose-500">*</span>:</label>
+                            <input type="text" id="ecnBatchReason" placeholder="Ví dụ: Đổi NCC hạt nhựa PP; Tăng chiều dài chốt trục..." class="w-full border p-1.5 rounded bg-white focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs text-amber-800 font-medium">
+                            <i class="fa-solid fa-circle-info mr-1"></i>
+                            Tất cả cụm cha liên quan trên <b id="impactedBomCount">0</b> file BOM sẽ được tự động nâng version đồng bộ.
+                        </div>
+                        <button onclick="commitBatchECN()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-2 rounded text-xs shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-stamp"></i> Phê Duyệt & Phát Hành Đợt ECN Này
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Danh sách các lần sửa đổi đã thực hiện & Nút Quay lại -->
-            <div class="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col overflow-hidden">
+            <!-- Lịch sử các lệnh ECN đã phát hành -->
+            <div class="h-44 bg-white rounded-lg border border-gray-200 shadow-sm p-3 flex flex-col overflow-hidden">
                 <div class="text-xs font-bold uppercase text-gray-700 mb-2 flex items-center justify-between">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-500"></i> Nhật Ký Lệnh ECN Đã Thực Hiện</span>
-                    <span class="text-gray-400 text-[11px] font-normal">Có thể bấm Quay Lại (Rollback) bất cứ lúc nào</span>
+                    <span><i class="fa-solid fa-clock-rotate-left text-emerald-600 mr-1.5"></i> Lịch Sử Lệnh ECN Đã Phát Hành</span>
+                    <span class="text-[11px] text-gray-400 font-normal">Hỗ trợ bấm Hoàn Tác (Rollback) từng đợt</span>
                 </div>
-                <div id="ecnHistoryTable" class="flex-1 overflow-y-auto space-y-2 text-xs pr-1"></div>
+                <div id="ecnHistoryContainer" class="flex-1 overflow-y-auto space-y-2 text-xs pr-1"></div>
             </div>
         </div>
     </div>
 
-    <!-- ==================== PHÂN HỆ 3: TRA CỨU TOÀN HỆ THỐNG ==================== -->
+    <!-- ==================== TAB 3: TRA CỨU TOÀN HỆ THỐNG ==================== -->
     <div id="tab-search" class="h-full hidden bg-white rounded-lg border border-gray-200 shadow-sm p-6 flex flex-col overflow-hidden">
         <div class="max-w-2xl mx-auto w-full mb-6">
             <h3 class="text-base font-bold text-gray-800 text-center mb-1 flex items-center justify-center gap-2">
@@ -213,7 +240,6 @@
         </div>
 
         <div class="flex-1 grid grid-cols-2 gap-6 overflow-hidden">
-            <!-- Cột kết quả Where-Used -->
             <div class="border rounded-lg p-4 flex flex-col overflow-hidden bg-gray-50/50">
                 <div class="text-xs font-bold uppercase text-gray-700 mb-3 flex items-center justify-between border-b pb-2">
                     <span><i class="fa-solid fa-cubes text-blue-600 mr-1.5"></i> Vị trí sử dụng (Where-Used)</span>
@@ -224,7 +250,6 @@
                 </div>
             </div>
 
-            <!-- Cột dòng thời gian Version (Timeline) -->
             <div class="border rounded-lg p-4 flex flex-col overflow-hidden bg-gray-50/50">
                 <div class="text-xs font-bold uppercase text-gray-700 mb-3 flex items-center justify-between border-b pb-2">
                     <span><i class="fa-solid fa-timeline text-amber-600 mr-1.5"></i> Dòng Thời Gian Lên Version</span>
@@ -240,8 +265,8 @@
 </div>
 
 <script>
-// ==================== DATABASE & STORAGE ====================
-const STORAGE_KEY = "ENTERPRISE_BOM_DB_V4";
+// ==================== CƠ SỞ DỮ LIỆU & STORAGE ====================
+const STORAGE_KEY = "ENTERPRISE_BOM_DB_V5";
 let appState = {
     selectedFolderId: "folder-default",
     activeBomId: null,
@@ -250,11 +275,14 @@ let appState = {
     history: []
 };
 
+// Giỏ linh kiện chuẩn bị lên Version trong đợt ECN này
+let stagedECNItems = [];
+
 window.onload = function() {
     loadDatabase();
     renderFolderTree();
-    populateECNBOMSelect();
     renderBOMViewer();
+    populateECNFilterOptions();
 };
 
 function saveDatabase() {
@@ -276,7 +304,7 @@ function loadDatabase() {
     }
 }
 
-// ==================== ĐIỀU HƯỚNG TABS ====================
+// ==================== ĐIỀU HƯỚNG TAB ====================
 function switchTab(tabId) {
     ['tab-view', 'tab-ecn', 'tab-search'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
@@ -286,12 +314,14 @@ function switchTab(tabId) {
     document.getElementById('btn-' + tabId).className = "py-3 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition font-bold";
 
     if (tabId === 'tab-ecn') {
-        populateECNBOMSelect();
+        populateECNFilterOptions();
+        searchPartsForECN();
+        renderECNCartTable();
         renderECNHistory();
     }
 }
 
-// ==================== QUẢN LÝ THƯ MỤC ====================
+// ==================== THƯ MỤC ====================
 function createNewFolder() {
     const name = prompt("Nhập tên thư mục dự án mới:");
     if (!name || !name.trim()) return;
@@ -336,98 +366,118 @@ function deleteBOM(event, bomId) {
     saveDatabase(); renderFolderTree(); renderBOMViewer();
 }
 
-// ==================== NHẬP EXCEL ====================
-function handleExcelUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const arrayBuffer = e.target.result;
-            const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const range = XLSX.utils.decode_range(sheet['!ref']);
+// ==================== TẢI LÊN NHIỀU FILE EXCEL CÙNG LÚC ====================
+async function handleExcelUpload(event) {
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
 
-            let colLvl = 1, colPN_L0 = 0, colPN_Lx = 3, colProp = 4, colName = 5, colQty = 7, colUnit = 8, colRemark = 9;
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cell = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
-                if (!cell || !cell.v) continue;
-                const txt = String(cell.v).replace(/\s+/g, '');
-                if (txt.includes('阶次')) colLvl = C;
-                else if (txt.includes('主件品号')) colPN_L0 = C;
-                else if (txt.includes('元件品号')) colPN_Lx = C;
-                else if (txt.includes('品名')) colName = C;
-                else if (txt.includes('属性')) colProp = C;
-                else if (txt.includes('组成用量')) colQty = C;
-                else if (txt.includes('单位')) colUnit = C;
-                else if (txt.includes('备注')) colRemark = C;
-            }
+    let successCount = 0;
+    for (const file of files) {
+        const ok = await parseAndStoreExcel(file);
+        if (ok) successCount++;
+    }
 
-            const items = [];
-            const stack = [];
-            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                const lvlCell = sheet[XLSX.utils.encode_cell({ r: R, c: colLvl })];
-                if (!lvlCell || lvlCell.v === undefined || lvlCell.v === '') continue;
-                const rawLvlStr = String(lvlCell.v).trim();
-                let level = rawLvlStr.includes('.') ? (rawLvlStr.match(/\./g) || []).length : (parseInt(rawLvlStr) || 0);
-
-                let pnCell = (level === 0) ? sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })] : sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
-                if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
-                if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })];
-                const pn = pnCell && pnCell.v ? String(pnCell.v).trim() : '';
-                if (!pn) continue;
-
-                const nameCell = sheet[XLSX.utils.encode_cell({ r: R, c: colName })];
-                const propCell = sheet[XLSX.utils.encode_cell({ r: R, c: colProp })];
-                const qtyCell = sheet[XLSX.utils.encode_cell({ r: R, c: colQty })];
-                const unitCell = sheet[XLSX.utils.encode_cell({ r: R, c: colUnit })];
-                const remarkCell = sheet[XLSX.utils.encode_cell({ r: R, c: colRemark })];
-
-                while (stack.length > 0 && stack[stack.length - 1].level >= level) stack.pop();
-                const parentIdx = stack.length > 0 ? stack[stack.length - 1].idx : null;
-
-                items.push({
-                    idx: items.length, level: level, rawLevel: rawLvlStr, pn: pn,
-                    name: nameCell ? String(nameCell.v).trim() : '',
-                    property: propCell ? String(propCell.v).trim() : '',
-                    qty: qtyCell ? (parseFloat(qtyCell.v) || 0) : 0,
-                    unit: unitCell ? String(unitCell.v).trim() : 'PCS',
-                    remark: remarkCell && remarkCell.v ? String(remarkCell.v).trim() : '',
-                    parentIdx: parentIdx, rowInSheet: R, isModified: false, isCollapsed: false
-                });
-                stack.push({ level: level, idx: items.length - 1 });
-            }
-
-            const newBOM = {
-                id: "bom-" + Date.now(),
-                folderId: appState.selectedFolderId,
-                name: file.name,
-                rawFileBinary: arrayBuffer,
-                sheetName: sheetName,
-                colPN_L0: colPN_L0,
-                colPN_Lx: colPN_Lx,
-                colRemark: colRemark,
-                items: items
-            };
-
-            appState.boms.push(newBOM);
-            appState.activeBomId = newBOM.id;
-            saveDatabase(); renderFolderTree(); renderBOMViewer();
-            alert(`Tải thành công file BOM gồm ${items.length} chi tiết!`);
-        } catch(err) { alert("Lỗi khi đọc file Excel!"); }
-    };
-    reader.readAsArrayBuffer(file);
+    saveDatabase();
+    renderFolderTree();
+    renderBOMViewer();
+    populateECNFilterOptions();
+    event.target.value = "";
+    alert(`Đã tải lên thành công ${successCount}/${files.length} file BOM vào hệ thống!`);
 }
 
-// ==================== XUẤT EXCEL & BÔI VÀNG Ô CHỈNH SỬA ====================
+function parseAndStoreExcel(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const arrayBuffer = e.target.result;
+                const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const range = XLSX.utils.decode_range(sheet['!ref']);
+
+                let colLvl = 1, colPN_L0 = 0, colPN_Lx = 3, colProp = 4, colName = 5, colQty = 7, colUnit = 8, colRemark = 9;
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
+                    if (!cell || !cell.v) continue;
+                    const txt = String(cell.v).replace(/\s+/g, '');
+                    if (txt.includes('阶次')) colLvl = C;
+                    else if (txt.includes('主件品号')) colPN_L0 = C;
+                    else if (txt.includes('元件品号')) colPN_Lx = C;
+                    else if (txt.includes('品名')) colName = C;
+                    else if (txt.includes('属性')) colProp = C;
+                    else if (txt.includes('组成用量')) colQty = C;
+                    else if (txt.includes('单位')) colUnit = C;
+                    else if (txt.includes('备注')) colRemark = C;
+                }
+
+                const items = [];
+                const stack = [];
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    const lvlCell = sheet[XLSX.utils.encode_cell({ r: R, c: colLvl })];
+                    if (!lvlCell || lvlCell.v === undefined || lvlCell.v === '') continue;
+
+                    const rawLvlStr = String(lvlCell.v).trim();
+                    let level = rawLvlStr.includes('.') ? (rawLvlStr.match(/\./g) || []).length : (parseInt(rawLvlStr) || 0);
+
+                    let pnCell = (level === 0) ? sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })] : sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
+                    if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_Lx })];
+                    if (!pnCell || !pnCell.v) pnCell = sheet[XLSX.utils.encode_cell({ r: R, c: colPN_L0 })];
+                    const pn = pnCell && pnCell.v ? String(pnCell.v).trim() : '';
+                    if (!pn) continue;
+
+                    const nameCell = sheet[XLSX.utils.encode_cell({ r: R, c: colName })];
+                    const propCell = sheet[XLSX.utils.encode_cell({ r: R, c: colProp })];
+                    const qtyCell = sheet[XLSX.utils.encode_cell({ r: R, c: colQty })];
+                    const unitCell = sheet[XLSX.utils.encode_cell({ r: R, c: colUnit })];
+                    const remarkCell = sheet[XLSX.utils.encode_cell({ r: R, c: colRemark })];
+
+                    while (stack.length > 0 && stack[stack.length - 1].level >= level) stack.pop();
+                    const parentIdx = stack.length > 0 ? stack[stack.length - 1].idx : null;
+
+                    items.push({
+                        idx: items.length, level: level, rawLevel: rawLvlStr, pn: pn,
+                        name: nameCell ? String(nameCell.v).trim() : '',
+                        property: propCell ? String(propCell.v).trim() : '',
+                        qty: qtyCell ? (parseFloat(qtyCell.v) || 0) : 0,
+                        unit: unitCell ? String(unitCell.v).trim() : 'PCS',
+                        remark: remarkCell && remarkCell.v ? String(remarkCell.v).trim() : '',
+                        parentIdx: parentIdx, rowInSheet: R, isModified: false, isCollapsed: false
+                    });
+                    stack.push({ level: level, idx: items.length - 1 });
+                }
+
+                const newBOM = {
+                    id: "bom-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+                    folderId: appState.selectedFolderId,
+                    name: file.name,
+                    rawFileBinary: arrayBuffer,
+                    sheetName: sheetName,
+                    colPN_L0: colPN_L0,
+                    colPN_Lx: colPN_Lx,
+                    colRemark: colRemark,
+                    items: items
+                };
+
+                appState.boms.push(newBOM);
+                if (!appState.activeBomId) appState.activeBomId = newBOM.id;
+                resolve(true);
+            } catch(err) {
+                console.error("Lỗi đọc file:", file.name, err);
+                resolve(false);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// ==================== XUẤT EXCEL (BÔI VÀNG Ô SỬA) ====================
 function exportCurrentBOMToExcel() {
     const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
     if (!activeBom) return alert("Vui lòng chọn 1 BOM cần xuất file!");
 
-    // Định dạng màu vàng cho ô sửa đổi
     const yellowHighlightStyle = {
-        fill: { fgColor: { rgb: "FFFF00" } }, // Màu vàng chuẩn Excel
+        fill: { fgColor: { rgb: "FFFF00" } },
         font: { bold: true, color: { rgb: "000000" } },
         border: {
             top: { style: "thin", color: { rgb: "CCCCCC" } },
@@ -438,7 +488,6 @@ function exportCurrentBOMToExcel() {
     };
 
     if (!activeBom.rawFileBinary) {
-        // Xuất chuẩn nếu không còn buffer trong RAM
         const exportData = activeBom.items.map(item => ({
             "阶  次": item.rawLevel,
             "元件品号": item.pn,
@@ -449,7 +498,6 @@ function exportCurrentBOMToExcel() {
             "备   注": item.remark
         }));
         const ws = XLSX.utils.json_to_sheet(exportData);
-        // Bôi vàng các ô sửa đổi
         activeBom.items.forEach((item, rIdx) => {
             if (item.isModified) {
                 const cellPN = XLSX.utils.encode_cell({ r: rIdx + 1, c: 1 });
@@ -463,7 +511,6 @@ function exportCurrentBOMToExcel() {
         return XLSX.writeFile(wb, `${activeBom.name.replace(/\.[^/.]+$/, "")}_Updated.xlsx`);
     }
 
-    // Đọc chính xác file gốc và bôi vàng ô được chỉnh sửa
     const workbook = XLSX.read(activeBom.rawFileBinary, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true });
     const sheet = workbook.Sheets[activeBom.sheetName];
 
@@ -472,30 +519,22 @@ function exportCurrentBOMToExcel() {
         const cellPNRef = XLSX.utils.encode_cell({ r: item.rowInSheet, c: colPN });
 
         if (!sheet[cellPNRef]) sheet[cellPNRef] = { t: 's', v: item.pn };
-        sheet[cellPNRef].v = item.pn;
-        sheet[cellPNRef].w = item.pn;
+        sheet[cellPNRef].v = item.pn; sheet[cellPNRef].w = item.pn;
 
-        // Bôi vàng Part Number nếu bị thay đổi
-        if (item.isModified) {
-            sheet[cellPNRef].s = yellowHighlightStyle;
-        }
+        if (item.isModified) sheet[cellPNRef].s = yellowHighlightStyle;
 
-        // Ghi và bôi vàng cột Lý do thay đổi / Ghi chú
         if (item.remark) {
             const cellRemarkRef = XLSX.utils.encode_cell({ r: item.rowInSheet, c: activeBom.colRemark });
             if (!sheet[cellRemarkRef]) sheet[cellRemarkRef] = { t: 's', v: item.remark };
-            sheet[cellRemarkRef].v = item.remark;
-            sheet[cellRemarkRef].w = item.remark;
-            if (item.isModified) {
-                sheet[cellRemarkRef].s = yellowHighlightStyle;
-            }
+            sheet[cellRemarkRef].v = item.remark; sheet[cellRemarkRef].w = item.remark;
+            if (item.isModified) sheet[cellRemarkRef].s = yellowHighlightStyle;
         }
     });
 
     XLSX.writeFile(workbook, `${activeBom.name.replace(/\.[^/.]+$/, "")}_Updated.xlsx`);
 }
 
-// ==================== PHÂN HỆ 1: HIỂN THỊ CÂY DUYỆT BOM ====================
+// ==================== TAB 1: DUYỆT CÂY BOM ====================
 function toggleCollapse(itemIdx) {
     const activeBom = appState.boms.find(b => b.id === appState.activeBomId);
     if (!activeBom) return;
@@ -573,8 +612,16 @@ function renderBOMViewer(searchFilter = "") {
 function highlightText(t, k) { if (!k) return t; return t.replace(new RegExp(`(${k})`, 'gi'), `<mark class="bg-yellow-300 px-0.5 rounded">$1</mark>`); }
 function handleViewerSearch() { renderBOMViewer(document.getElementById("viewerSearchInput").value.trim()); }
 
-// ==================== THUẬT TOÁN NHẢY VERSION ====================
-function calculateNextVersion(pn) {
+// ==================== THUẬT TOÁN NHẢY N PHIÊN BẢN ====================
+function calculateStepVersion(pn, steps = 1) {
+    let current = pn;
+    for (let i = 0; i < steps; i++) {
+        current = bumpSingleVersion(current);
+    }
+    return current;
+}
+
+function bumpSingleVersion(pn) {
     const mLetter = pn.match(/^(.*)-([A-Z])$/);
     if (mLetter) return `${mLetter[1]}-${mLetter[2] === 'Z' ? 'AA' : String.fromCharCode(mLetter[2].charCodeAt(0) + 1)}`;
     const mEnum = pn.match(/^(.*[A-Za-z])(\d{3})$/);
@@ -584,164 +631,274 @@ function calculateNextVersion(pn) {
     return `${pn}-002`;
 }
 
-// ==================== PHÂN HỆ 2: QUẢN LÝ LÊN VER (ECN) ====================
-let ecnPendingImpact = [];
-
-function populateECNBOMSelect() {
-    const select = document.getElementById("ecnBomSelect");
-    select.innerHTML = '<option value="">-- Chọn file BOM --</option>';
+// ==================== TAB 2: QUẢN LÝ LÊN VER (ECN ĐA LINH KIỆN) ====================
+function populateECNFilterOptions() {
+    const select = document.getElementById("ecnBomFilter");
+    select.innerHTML = '<option value="ALL">-- Tìm trong tất cả BOMs --</option>';
     appState.boms.forEach(b => {
         const opt = document.createElement("option");
         opt.value = b.id; opt.innerText = b.name;
-        if (b.id === appState.activeBomId) opt.selected = true;
         select.appendChild(opt);
     });
-    loadPartsForECN();
 }
 
-function loadPartsForECN() {
-    const bomId = document.getElementById("ecnBomSelect").value;
-    const partSelect = document.getElementById("ecnPartSelect");
-    partSelect.innerHTML = '<option value="">-- Chọn Part Number --</option>';
-    const bom = appState.boms.find(b => b.id === bomId);
-    if (!bom) return;
+function searchPartsForECN() {
+    const filterBomId = document.getElementById("ecnBomFilter").value;
+    const kw = document.getElementById("ecnSearchPartInput").value.trim().toLowerCase();
+    const container = document.getElementById("ecnPartSearchResults");
+    container.innerHTML = "";
 
-    bom.items.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.pn;
-        opt.innerText = `[L${item.level}] ${item.pn} - ${item.name.substring(0, 30)}`;
-        partSelect.appendChild(opt);
-    });
-    handlePartSelectedForECN();
-}
+    const targetBOMs = (filterBomId === "ALL") ? appState.boms : appState.boms.filter(b => b.id === filterBomId);
+    let count = 0;
 
-function handlePartSelectedForECN() {
-    const bomId = document.getElementById("ecnBomSelect").value;
-    const targetPN = document.getElementById("ecnPartSelect").value;
-    const bom = appState.boms.find(b => b.id === bomId);
-    if (!bom || !targetPN) {
-        document.getElementById("ecnImpactList").innerHTML = `<div class="text-gray-400 italic py-2">Hãy chọn linh kiện để phân tích tác động.</div>`;
-        return;
-    }
+    targetBOMs.forEach(bom => {
+        bom.items.forEach(item => {
+            if (!kw || item.pn.toLowerCase().includes(kw) || item.name.toLowerCase().includes(kw)) {
+                if (count++ > 60) return; // Giới hạn hiển thị 60 kết quả nhanh nhất
 
-    const item = bom.items.find(i => i.pn === targetPN);
-    document.getElementById("ecnPartLevel").innerText = `Level ${item.level}`;
-    document.getElementById("ecnPartName").innerText = item.name;
-    document.getElementById("ecnNewPN").value = calculateNextVersion(targetPN);
-
-    // Phân tích tác động lan truyền trên toàn hệ thống
-    ecnPendingImpact = [];
-    appState.boms.forEach(b => {
-        b.items.filter(i => i.pn === targetPN).forEach(matchItem => {
-            const parentChain = [];
-            let currIdx = matchItem.parentIdx;
-            while (currIdx !== null && currIdx !== undefined) {
-                const parentItem = b.items[currIdx];
-                parentChain.push({ idx: parentItem.idx, oldPN: parentItem.pn, newPN: calculateNextVersion(parentItem.pn), level: parentItem.level, name: parentItem.name, oldRemark: parentItem.remark });
-                currIdx = parentItem.parentIdx;
+                const isAlreadyStaged = stagedECNItems.some(x => x.targetPN === item.pn);
+                const row = document.createElement("div");
+                row.className = "p-2.5 hover:bg-white flex justify-between items-center transition";
+                row.innerHTML = `
+                    <div class="overflow-hidden pr-2">
+                        <div class="font-mono font-bold text-gray-900 flex items-center gap-1.5">
+                            <span class="bg-gray-200 text-gray-700 text-[10px] px-1.5 py-0.2 rounded">L${item.level}</span>
+                            ${highlightText(item.pn, kw)}
+                        </div>
+                        <div class="text-[11px] text-gray-600 truncate">${highlightText(item.name, kw)}</div>
+                        <div class="text-[10px] text-gray-400">Từ file: ${bom.name}</div>
+                    </div>
+                    <button onclick="addToECNCart('${item.pn}', '${item.name.replace(/'/g, "\\'")}', ${item.level})" 
+                            class="shrink-0 ${isAlreadyStaged ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200'} px-2.5 py-1 rounded text-[11px] font-semibold transition">
+                        ${isAlreadyStaged ? 'Đã Chọn' : '+ Thêm'}
+                    </button>
+                `;
+                container.appendChild(row);
             }
-            ecnPendingImpact.push({ bomId: b.id, bomName: b.name, itemIdx: matchItem.idx, oldPN: matchItem.pn, oldRemark: matchItem.remark, parentChain: parentChain });
         });
     });
 
-    document.getElementById("ecnImpactCount").innerText = `${new Set(ecnPendingImpact.map(x => x.bomId)).size} BOM bị ảnh hưởng`;
-    const container = document.getElementById("ecnImpactList");
-    container.innerHTML = "";
-    ecnPendingImpact.forEach(impact => {
-        const div = document.createElement("div");
-        div.className = "p-2 bg-white rounded border border-gray-200 text-xs";
-        let chainHtml = impact.parentChain.map(p => `<div class="pl-4 flex items-center gap-1 text-[11px] text-gray-600"><i class="fa-solid fa-arrow-turn-up rotate-90 text-gray-400"></i>[L${p.level}] ${p.oldPN} ➔ <b class="text-blue-600">${p.newPN}</b> (${p.name})</div>`).join('');
-        div.innerHTML = `<div class="font-bold text-gray-800"><i class="fa-regular fa-file-lines text-blue-500 mr-1"></i> ${impact.bomName}</div>${chainHtml || '<span class="text-gray-400 italic pl-4">Cụm cấp cao nhất, không có cha.</span>'}`;
-        container.appendChild(div);
+    if (count === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-gray-400 text-xs italic">Không tìm thấy linh kiện nào khớp từ khóa.</div>`;
+    }
+}
+
+function addToECNCart(pn, name, level) {
+    if (stagedECNItems.some(x => x.targetPN === pn)) return;
+
+    stagedECNItems.push({
+        targetPN: pn,
+        name: name,
+        level: level,
+        step: 1,
+        newPN: calculateStepVersion(pn, 1)
+    });
+
+    renderECNCartTable();
+    searchPartsForECN();
+}
+
+function removeFromECNCart(pn) {
+    stagedECNItems = stagedECNItems.filter(x => x.targetPN !== pn);
+    renderECNCartTable();
+    searchPartsForECN();
+}
+
+function clearECNCart() {
+    stagedECNItems = [];
+    renderECNCartTable();
+    searchPartsForECN();
+}
+
+function updateCartItemStep(pn, stepValue) {
+    const item = stagedECNItems.find(x => x.targetPN === pn);
+    if (!item) return;
+    item.step = parseInt(stepValue) || 1;
+    item.newPN = calculateStepVersion(pn, item.step);
+    renderECNCartTable();
+}
+
+function updateCartItemCustomPN(pn, customPN) {
+    const item = stagedECNItems.find(x => x.targetPN === pn);
+    if (item) item.newPN = customPN.trim();
+}
+
+function renderECNCartTable() {
+    const tbody = document.getElementById("ecnCartTableBody");
+    tbody.innerHTML = "";
+    document.getElementById("stagedCount").innerText = stagedECNItems.length;
+
+    if (stagedECNItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-400 italic">Chưa có linh kiện nào được chọn. Hãy tìm và bấm "+ Thêm" ở cột bên trái.</td></tr>`;
+        document.getElementById("impactedBomCount").innerText = "0";
+        return;
+    }
+
+    // Đếm số BOM bị tác động bởi danh sách này
+    const affectedBomSet = new Set();
+    stagedECNItems.forEach(cartItem => {
+        appState.boms.forEach(b => {
+            if (b.items.some(i => i.pn === cartItem.targetPN)) affectedBomSet.add(b.id);
+        });
+    });
+    document.getElementById("impactedBomCount").innerText = affectedBomSet.size;
+
+    stagedECNItems.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-amber-50/40";
+        tr.innerHTML = `
+            <td class="py-2 px-2 font-mono font-bold text-gray-800">
+                <span class="bg-gray-100 text-gray-600 text-[10px] px-1 rounded mr-1">L${item.level}</span>
+                ${item.targetPN}
+            </td>
+            <td class="py-2 px-2 text-gray-600 truncate max-w-[150px]">${item.name}</td>
+            <td class="py-2 px-2 text-center">
+                <select onchange="updateCartItemStep('${item.targetPN}', this.value)" class="border rounded px-1.5 py-1 text-xs font-semibold">
+                    <option value="1" ${item.step === 1 ? 'selected' : ''}>+1 Ver</option>
+                    <option value="2" ${item.step === 2 ? 'selected' : ''}>+2 Ver</option>
+                    <option value="3" ${item.step === 3 ? 'selected' : ''}>+3 Ver</option>
+                </select>
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" value="${item.newPN}" onchange="updateCartItemCustomPN('${item.targetPN}', this.value)" 
+                       class="w-full border px-2 py-1 rounded font-mono font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 text-xs">
+            </td>
+            <td class="py-2 px-2 text-center">
+                <button onclick="removeFromECNCart('${item.targetPN}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-xmark"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 }
 
-function applyECNChange() {
-    const targetPN = document.getElementById("ecnPartSelect").value;
-    const finalNewPN = document.getElementById("ecnNewPN").value.trim();
-    const reason = document.getElementById("ecnReason").value.trim();
+// THỰC THI PHÁT HÀNH ĐỢT ECN TOÀN BỘ LINH KIỆN ĐÃ CHỌN
+function commitBatchECN() {
+    if (stagedECNItems.length === 0) return alert("Vui lòng chọn ít nhất 1 linh kiện cần nâng version!");
 
-    if (!targetPN || !finalNewPN) return alert("Vui lòng chọn linh kiện và nhập mã mới!");
-    if (!reason) return alert("Vui lòng nhập lý do thay đổi kỹ thuật (ECN)!");
+    const ecnCode = document.getElementById("ecnBatchCode").value.trim() || `ECN-${Date.now()}`;
+    const reason = document.getElementById("ecnBatchReason").value.trim();
+    if (!reason) return alert("Vui lòng nhập lý do thay đổi kỹ thuật cho đợt ECN này!");
 
-    const historyRecord = {
+    const batchHistoryRecord = {
         id: "ecn-" + Date.now(),
+        ecnCode: ecnCode,
         timestamp: new Date().toLocaleString('vi-VN'),
-        targetPN: targetPN,
-        newPN: finalNewPN,
         reason: reason,
+        itemsCount: stagedECNItems.length,
+        items: JSON.parse(JSON.stringify(stagedECNItems)),
         affectedBoms: []
     };
 
-    ecnPendingImpact.forEach(impact => {
-        const bom = appState.boms.find(b => b.id === impact.bomId);
-        if (bom) {
-            const bomChangeRecord = { bomId: bom.id, bomName: bom.name, changes: [] };
-            const targetItem = bom.items[impact.itemIdx];
-            bomChangeRecord.changes.push({ idx: targetItem.idx, oldPN: targetItem.pn, newPN: finalNewPN, oldRemark: targetItem.remark, newRemark: reason });
-            targetItem.pn = finalNewPN; targetItem.remark = reason; targetItem.isModified = true;
+    // Quét và cập nhật từng linh kiện trong giỏ
+    stagedECNItems.forEach(cartItem => {
+        appState.boms.forEach(bom => {
+            const matches = bom.items.filter(i => i.pn === cartItem.targetPN);
+            if (matches.length > 0) {
+                let bomRec = batchHistoryRecord.affectedBoms.find(b => b.bomId === bom.id);
+                if (!bomRec) {
+                    bomRec = { bomId: bom.id, bomName: bom.name, changes: [] };
+                    batchHistoryRecord.affectedBoms.push(bomRec);
+                }
 
-            impact.parentChain.forEach(p => {
-                const parentItem = bom.items[p.idx];
-                bomChangeRecord.changes.push({ idx: parentItem.idx, oldPN: parentItem.pn, newPN: p.newPN, oldRemark: parentItem.remark, newRemark: `ECN do [${finalNewPN}]: ${reason}` });
-                parentItem.pn = p.newPN; parentItem.remark = `ECN do [${finalNewPN}]: ${reason}`; parentItem.isModified = true;
-            });
-            historyRecord.affectedBoms.push(bomChangeRecord);
-        }
+                matches.forEach(targetItem => {
+                    // Cập nhật mục tiêu
+                    bomRec.changes.push({
+                        idx: targetItem.idx,
+                        oldPN: targetItem.pn,
+                        newPN: cartItem.newPN,
+                        oldRemark: targetItem.remark,
+                        newRemark: `[${ecnCode}] ${reason}`
+                    });
+                    targetItem.pn = cartItem.newPN;
+                    targetItem.remark = `[${ecnCode}] ${reason}`;
+                    targetItem.isModified = true;
+
+                    // Lan truyền lên các cấp cha
+                    let currIdx = targetItem.parentIdx;
+                    while (currIdx !== null && currIdx !== undefined) {
+                        const parentItem = bom.items[currIdx];
+                        const nextParentPN = calculateStepVersion(parentItem.pn, cartItem.step);
+
+                        bomRec.changes.push({
+                            idx: parentItem.idx,
+                            oldPN: parentItem.pn,
+                            newPN: nextParentPN,
+                            oldRemark: parentItem.remark,
+                            newRemark: `Kế thừa [${cartItem.newPN}] [${ecnCode}]`
+                        });
+
+                        parentItem.pn = nextParentPN;
+                        parentItem.remark = `Kế thừa [${cartItem.newPN}] [${ecnCode}]`;
+                        parentItem.isModified = true;
+                        currIdx = parentItem.parentIdx;
+                    }
+                });
+            }
+        });
     });
 
-    appState.history.unshift(historyRecord);
+    appState.history.unshift(batchHistoryRecord);
     saveDatabase();
+    clearECNCart();
     renderECNHistory();
     renderBOMViewer();
-    alert("Phát hành ECN thành công! Toàn bộ file và các cấp cha đã được cập nhật.");
+    alert(`Phát hành thành công lệnh ${ecnCode}! Toàn bộ linh kiện và các cụm cha liên quan đã được nâng version.`);
 }
 
 function renderECNHistory() {
-    const container = document.getElementById("ecnHistoryTable");
+    const container = document.getElementById("ecnHistoryContainer");
     container.innerHTML = "";
     if (appState.history.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-gray-400 italic">Chưa có lệnh ECN nào được ghi nhận.</div>`;
+        container.innerHTML = `<div class="text-center py-6 text-gray-400 italic">Chưa có lệnh ECN nào được ghi nhận.</div>`;
         return;
     }
+
     appState.history.forEach((h, idx) => {
         const card = document.createElement("div");
-        card.className = "border border-gray-200 rounded p-3 bg-white shadow-sm";
-        let bomsDetail = h.affectedBoms.map(b => `<div class="mt-1 pl-2 border-l-2 border-amber-400"><span class="font-bold text-gray-700">${b.bomName}</span>: ${b.changes.length} chi tiết đổi</div>`).join('');
+        card.className = "border border-gray-200 rounded p-2.5 bg-white shadow-sm flex justify-between items-start";
         card.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <span class="text-[10px] text-gray-400 font-mono"><i class="fa-regular fa-clock mr-1"></i>${h.timestamp}</span>
-                    <div class="font-bold text-gray-900 mt-0.5"><span class="font-mono text-gray-600">${h.targetPN}</span> ➔ <span class="font-mono text-blue-600">${h.newPN}</span></div>
-                    <div class="text-xs text-amber-800 mt-1 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200"><i class="fa-solid fa-tag mr-1"></i>Lý do: ${h.reason}</div>
-                    <div class="mt-2 text-[11px] text-gray-600">${bomsDetail}</div>
+            <div>
+                <div class="font-bold text-gray-900 flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-mono font-bold">${h.ecnCode || 'ECN'}</span>
+                    <span>${h.itemsCount || (h.items ? h.items.length : 1)} chi tiết được nâng cấp</span>
+                    <span class="text-[10px] text-gray-400 font-normal">${h.timestamp}</span>
                 </div>
-                <button onclick="rollbackECN(${idx})" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1">
-                    <i class="fa-solid fa-rotate-left"></i> Quay Lại
-                </button>
-            </div>`;
+                <div class="text-[11px] text-gray-600 mt-0.5"><b>Lý do:</b> ${h.reason}</div>
+            </div>
+            <button onclick="rollbackBatchECN(${idx})" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded text-[11px] font-semibold transition">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Quay Lại
+            </button>
+        `;
         container.appendChild(card);
     });
 }
 
-function rollbackECN(index) {
-    if (!confirm("Xác nhận hoàn tác lệnh ECN này? Toàn bộ linh kiện và cụm cha sẽ về phiên bản cũ.")) return;
+function rollbackBatchECN(index) {
+    if (!confirm("Xác nhận hoàn tác đợt ECN này? Toàn bộ các linh kiện và cụm cha liên quan sẽ về lại mã ban đầu.")) return;
     const record = appState.history[index];
+
     record.affectedBoms.forEach(bRecord => {
         const bom = appState.boms.find(b => b.id === bRecord.bomId);
         if (bom) {
             bRecord.changes.forEach(ch => {
                 const item = bom.items[ch.idx];
-                if (item) { item.pn = ch.oldPN; item.remark = ch.oldRemark; item.isModified = false; }
+                if (item) {
+                    item.pn = ch.oldPN;
+                    item.remark = ch.oldRemark;
+                    item.isModified = false;
+                }
             });
         }
     });
+
     appState.history.splice(index, 1);
-    saveDatabase(); renderECNHistory(); renderBOMViewer();
-    alert("Đã hoàn tác thành công!");
+    saveDatabase();
+    renderECNHistory();
+    renderBOMViewer();
+    alert("Đã hoàn tác đợt ECN thành công!");
 }
 
-// ==================== PHÂN HỆ 3: TRA CỨU TOÀN HỆ THỐNG ====================
+// ==================== TAB 3: TRA CỨU TOÀN HỆ THỐNG ====================
 function executeSystemSearch() {
     const kw = document.getElementById("systemSearchInput").value.trim().toLowerCase();
     if (!kw) return;
@@ -750,7 +907,6 @@ function executeSystemSearch() {
     const timelineContainer = document.getElementById("searchTimelineList");
     resContainer.innerHTML = ""; timelineContainer.innerHTML = "";
 
-    // 1. Tìm Where-used
     let matchCount = 0;
     appState.boms.forEach(bom => {
         bom.items.filter(i => i.pn.toLowerCase().includes(kw) || i.name.toLowerCase().includes(kw)).forEach(item => {
@@ -771,19 +927,26 @@ function executeSystemSearch() {
     document.getElementById("searchResultCount").innerText = `${matchCount} kết quả`;
     if (matchCount === 0) resContainer.innerHTML = `<div class="text-gray-400 italic py-4 text-center">Không tìm thấy linh kiện trong CSDL.</div>`;
 
-    // 2. Tìm Timeline Version
-    const historyMatches = appState.history.filter(h => h.targetPN.toLowerCase().includes(kw) || h.newPN.toLowerCase().includes(kw));
-    document.getElementById("searchHistoryCount").innerText = `${historyMatches.length} mốc`;
-    if (historyMatches.length > 0) {
-        historyMatches.forEach(h => {
+    const timelineMatches = [];
+    appState.history.forEach(h => {
+        if (h.items && h.items.some(i => i.targetPN.toLowerCase().includes(kw) || i.newPN.toLowerCase().includes(kw))) {
+            timelineMatches.push(h);
+        } else if (h.targetPN && (h.targetPN.toLowerCase().includes(kw) || h.newPN.toLowerCase().includes(kw))) {
+            timelineMatches.push(h);
+        }
+    });
+
+    document.getElementById("searchHistoryCount").innerText = `${timelineMatches.length} mốc`;
+    if (timelineMatches.length > 0) {
+        timelineMatches.forEach(h => {
             const tDiv = document.createElement("div");
             tDiv.className = "p-2.5 bg-white rounded border-l-4 border-amber-500 border border-gray-200 shadow-sm";
             tDiv.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="font-mono font-bold text-gray-800">${h.targetPN} ➔ <b class="text-blue-600">${h.newPN}</b></span>
+                    <span class="font-bold text-gray-800">[${h.ecnCode || 'ECN'}]</span>
                     <span class="text-[10px] text-gray-400 font-mono">${h.timestamp}</span>
                 </div>
-                <div class="text-[11px] text-amber-900 mt-1"><b>Lý do ECN:</b> ${h.reason}</div>`;
+                <div class="text-[11px] text-amber-900 mt-1"><b>Lý do:</b> ${h.reason}</div>`;
             timelineContainer.appendChild(tDiv);
         });
     } else {
